@@ -1,0 +1,91 @@
+{
+    "dtls": {
+        "controlling": {
+            "sslRole": "client",
+            "fingerprintDigestAlgorithm": "sha-256",
+            "fingerprint": [171, 42, 169, 4, 64, 250, 116, 38, 214, 53, 198, 152, 35, 172, 15, 223, 127, 78, 208, 136, 199, 213, 30, 76, 163, 77, 88, 23, 180, 139, 87, 251]
+        },
+        "controlled": {
+            "sslRole": "server",
+            "fingerprintDigestAlgorithm": "sha-256",
+            "fingerprint": [28, 74, 4, 112, 219, 49, 208, 27, 149, 37, 27, 93, 169, 125, 23, 43, 143, 251, 113, 35, 197, 29, 96, 132, 70, 71, 23, 65, 130, 22, 27, 187]
+        }
+    },
+    "candidates": {
+        "controlling": [{
+                "usernameFragment": "Q7yCGnlASvBvu57X",
+                "password": "FL8Q+QgbrCTCSsnKoSrBc6Bw",
+                "address": "192.168.2.1",
+                "port": 57126,
+                "type": "host"
+            }, {
+                "usernameFragment": "Q7yCGnlASvBvu57X",
+                "password": "FL8Q+QgbrCTCSsnKoSrBc6Bw",
+                "address": "192.168.178.77",
+                "port": 55080,
+                "type": "host"
+            }, {
+                "usernameFragment": "Q7yCGnlASvBvu57X",
+                "password": "FL8Q+QgbrCTCSsnKoSrBc6Bw",
+                "address": "fd9e:391c:a2a7:287f:1cbb:28aa:fae:a1c8",
+                "port": 62517,
+                "type": "host"
+            }, {
+                "usernameFragment": "Q7yCGnlASvBvu57X",
+                "password": "FL8Q+QgbrCTCSsnKoSrBc6Bw",
+                "address": "fd7c:fccb:7459:0:473:cc45:54ed:d1dc",
+                "port": 55741,
+                "type": "host"
+            }, {
+                "usernameFragment": "Q7yCGnlASvBvu57X",
+                "password": "FL8Q+QgbrCTCSsnKoSrBc6Bw",
+                "address": "2003:ec:df1f:8d00:fc87:2a6b:6b88:c131",
+                "port": 59003,
+                "type": "host"
+            }, {
+                "usernameFragment": "Q7yCGnlASvBvu57X",
+                "password": "FL8Q+QgbrCTCSsnKoSrBc6Bw",
+                "address": "84.140.133.95",
+                "port": 55080,
+                "type": "srflx"
+            }],
+        "controlled": [{
+                "usernameFragment": "ohjn60p2Yr9gYtc3",
+                "password": "4AeYWboyC9kc2VrgZJNRdss6",
+                "address": "192.168.2.1",
+                "port": 62933,
+                "type": "host"
+            }, {
+                "usernameFragment": "ohjn60p2Yr9gYtc3",
+                "password": "4AeYWboyC9kc2VrgZJNRdss6",
+                "address": "192.168.178.77",
+                "port": 54863,
+                "type": "host"
+            }, {
+                "usernameFragment": "ohjn60p2Yr9gYtc3",
+                "password": "4AeYWboyC9kc2VrgZJNRdss6",
+                "address": "fd9e:391c:a2a7:287f:1cbb:28aa:fae:a1c8",
+                "port": 57812,
+                "type": "host"
+            }, {
+                "usernameFragment": "ohjn60p2Yr9gYtc3",
+                "password": "4AeYWboyC9kc2VrgZJNRdss6",
+                "address": "fd7c:fccb:7459:0:473:cc45:54ed:d1dc",
+                "port": 54428,
+                "type": "host"
+            }, {
+                "usernameFragment": "ohjn60p2Yr9gYtc3",
+                "password": "4AeYWboyC9kc2VrgZJNRdss6",
+                "address": "2003:ec:df1f:8d00:fc87:2a6b:6b88:c131",
+                "port": 54580,
+                "type": "host"
+            }, {
+                "usernameFragment": "ohjn60p2Yr9gYtc3",
+                "password": "4AeYWboyC9kc2VrgZJNRdss6",
+                "address": "84.140.133.95",
+                "port": 54863,
+                "type": "srflx"
+            }]
+    },
+    "tiebreaker": 0.43583647510008094
+}
