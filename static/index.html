@@ -30,7 +30,7 @@
                     candidates: candidates
                 };
                 let offer = JSON.stringify(negotiationData);
-                console.log("offer is "+offer);
+                console.log("offer is " + offer);
                 let url = "/";
                 console.log(`planning to post to ${url}`);
                 let headers = new Headers();
@@ -76,7 +76,7 @@
              * Sets up the event listeners for the UI elements.
              */
             function answerDeal(remoteData) {
-                console.log("deal with the answer :" +JSON.stringify(remoteData));
+                console.log("deal with the answer :" + JSON.stringify(remoteData));
                 try {
                     let dtls, candidates, transport;
 
@@ -85,8 +85,11 @@
                     dtls.sslRole = "client";
                     candidates = remoteData.candidates;
                     pollWritable(transport, "transport", () => {
+                        window.setInterval(() => {
+                            var now = "js says " + Date.now();
+                            transport.sendPackets([{data: textEncoder.encode(now).buffer}]);
+                        }, 150);
                         console.log("we have a writeable transport")
-
                     });
                     pollReceivedPackets(transport, (packets) => {
                         const message = textDecoder.decode(packets[0].data);

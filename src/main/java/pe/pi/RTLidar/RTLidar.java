@@ -89,23 +89,42 @@ public class RTLidar {
 
     }
 
-    public void startSendingTo(DTLSTransport trans){
+    public void startSendingTo(DTLSTransport trans) {
         final DTLSTransport sendto = trans;
         Runnable sender = () -> {
-            while(true){
-                byte []mess = ("Time is "+System.currentTimeMillis()).getBytes();
+            while (true) {
+                byte[] mess = ("Time is " + System.currentTimeMillis()).getBytes();
                 try {
-                    sendto.send(mess,0,mess.length);
+                    sendto.send(mess, 0, mess.length);
                 } catch (IOException ex) {
-                    Log.error("cant send to DTLS"+ex);
+                    Log.error("cant send to DTLS" + ex);
                 }
-                try {Thread.sleep(100);}catch(Exception x){}
+                try {
+                    Thread.sleep(100);
+                } catch (Exception x) {
+                }
             }
         };
         new Thread(sender).start();
+        Runnable recver = () -> {
+            byte[] bytes = new byte[1500];
+            while (true) {
+                try {
+                    int got = sendto.receive(bytes, 0, bytes.length, 2000);
+                    if (got > 0) {
+                        byte[] go = new byte[got];
+                        System.arraycopy(bytes, 0, go, 0, got);
+                        Log.info("got message: " + new String(go));
+                    }
+                } catch (IOException ex) {
+                    Log.error("cant recv from DTLS" + ex);
+                }
+            }
+        };
+        new Thread(recver).start();
+
     }
 
-    
     String makeAnswer(String offer) throws Exception {
         String ans = "{error:}";
         gathering = true;
