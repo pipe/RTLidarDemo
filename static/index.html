@@ -1,0 +1,199 @@
+<html>
+    <body>
+        <H1> Hello Java</H1>
+        <div id="status"></div>
+        <div id="error"></div>
+        <input type="button" onclick="doOA();" value="Send"/>
+        <script>
+            const CONFIG = {
+                iceServers: [{urls: "stun:stun.l.google.com:19302"}],
+
+                maxPacketSize: 1200,
+            };
+
+            // TextEncoder/Decoder
+            const textEncoder = new TextEncoder();
+            const textDecoder = new TextDecoder();
+
+            // Transport
+            let controllingTransport;
+
+            let candidates = [];
+
+
+            function doOA() {
+                const negotiationData = {
+                    "dtls": {
+                        fingerprintDigestAlgorithm: controllingTransport.fingerprintDigestAlgorithm,
+                        fingerprint: Array.from(new Uint8Array(controllingTransport.fingerprint))
+                    },
+                    candidates: candidates
+                };
+                let offer = JSON.stringify(negotiationData);
+                console.log("offer is "+offer);
+                let url = "/";
+                console.log(`planning to post to ${url}`);
+                let headers = new Headers();
+                headers.append('Accept', 'application/json');
+                fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    redirect: 'follow',
+                    body: offer
+                }).then(response => response.json())
+                        .then((so) => {
+                            console.log(JSON.stringify(so));
+                            answerDeal(so);
+                        })
+                        .catch(error => console.log('error', error));
+            }
+
+
+            /**
+             * Initializes the RtcTransport instance.
+             */
+            function initializeTransport() {
+                controllingTransport = createTransport("myTransport1", true);
+
+                controllingTransport.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        candidates.push(event.candidate);
+                        console.log(event.candidate);
+                    } else {
+                        console.log("EoC");
+                    }
+                };
+
+                const dtlsParameters = {
+                    fingerprintDigestAlgorithm: controllingTransport.fingerprintDigestAlgorithm,
+                    fingerprint: Array.from(new Uint8Array(controllingTransport.fingerprint)),
+                };
+
+
+            }
+
+            /**
+             * Sets up the event listeners for the UI elements.
+             */
+            function answerDeal(remoteData) {
+                console.log("deal with the answer");
+                try {
+                    let dtls, candidates, transport;
+
+                    transport = controllingTransport;
+                    dtls = remoteData.dtls;
+                    candidates = remoteData.candidates;
+
+
+                    pollWritable(transport, "transport", () => {
+                        console.log("we have a writeable transport")
+
+                    });
+                    pollReceivedPackets(transport, (packets) => {
+                        const message = textDecoder.decode(packets[0].data);
+                        console.log("we have a packet from the transport :" + message)
+                    });
+
+                    dtls.fingerprint = new Uint8Array(dtls.fingerprint).buffer;
+                    transport.setRemoteDtlsParameters(dtls);
+                    candidates.forEach(candidate => transport.addRemoteCandidate(candidate));
+                    updateStatus(`Added remote parameters`);
+                } catch (error) {
+                    updateStatus("Error parsing candidate. Please check the format.");
+                    console.error("Error parsing candidate:", error);
+                }
+            }
+// DOM Elements
+            const statusEl = document.getElementById("status");
+            const errorEl = document.getElementById("error");
+
+            /**
+             * Updates the status element with a new message.
+             * @param {string} message - The message to display.
+             */
+            function updateStatus(message) {
+                statusEl.innerText += message + "\n";
+            }
+
+            /**
+             * Updates the error element with a new message.
+             * @param {string} message - The message to display.
+             */
+            function updateError(message) {
+                errorEl.innerText += message + "\n";
+            }
+
+            /**
+             * Sends an ICE candidate to the peer transport.
+             * @param {RtcTransport} peerTransport - The peer transport.
+             * @param {string} peerTransportName - The name of the peer transport.
+             * @param {Event} event - The ICE candidate event.
+             */
+            function sendCandidateToPeer(peerTransport, peerTransportName, event) {
+                if (event.candidate) {
+                    console.log(`Setting candidate to ${peerTransportName}:`, event.candidate);
+                    peerTransport.addRemoteCandidate(event.candidate);
+                    updateStatus(`Set candidate to ${peerTransportName}`);
+                }
+            }
+
+            /**
+             * Polls a transport until it becomes writable.
+             * @param {RtcTransport} transport - The transport to poll.
+             * @param {string} transportName - The name of the transport.
+             * @param {HTMLButtonElement} sendButton - The send button associated with the transport.
+             */
+            async function pollWritable(transport, transportName, callback) {
+                while (!await transport.writable()) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                updateStatus(`${transportName} is now writable`);
+                if (callback) {
+                    callback();
+                }
+            }
+
+            /**
+             * Polls a transport for received packets.
+             * @param {RtcTransport} transport - The transport to poll.
+             */
+            async function pollReceivedPackets(transport, callback) {
+                while (true) {
+                    const packets = transport.getReceivedPackets();
+                    if (packets.length > 0) {
+                        callback(packets);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+            }
+
+            /**
+             * Creates and configures an RtcTransport instance.
+             * @param {string} name - The name of the transport.
+             * @param {boolean} isControlling - Whether the transport is controlling.
+             * @returns {RtcTransport} The configured RtcTransport instance.
+             */
+            function createTransport(name, isControlling) {
+                return new RtcTransport({
+                    name,
+                    iceServers: CONFIG.iceServers,
+                    iceControlling: isControlling,
+                    wireProtocol: 'dtls'
+                });
+            }
+            /**
+             * Initializes the application.
+             */
+            function main() {
+                if (!window['RtcTransport']) {
+                    updateError("RtcTransport not supported on this browser. Be sure to run a recent Chromium Canary with --enable-blink-features=RTCRtpTransport.");
+                    return;
+                }
+                initializeTransport();
+            }
+
+            main();
+        </script>
+    </body>
+</html>
+

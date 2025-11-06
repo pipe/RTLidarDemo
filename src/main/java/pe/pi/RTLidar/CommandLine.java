@@ -19,11 +19,18 @@
 package pe.pi.RTLidar;
 
 import com.phono.srtplight.Log;
+import com.sun.net.httpserver.HttpHandlers;
 import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.Request;
+import com.sun.net.httpserver.SimpleFileServer;
+import com.sun.net.httpserver.SimpleFileServer.OutputLevel;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.file.Path;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Predicate;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import pe.pi.RTLidar.util.OAServer;
 
 /**
@@ -32,32 +39,36 @@ import pe.pi.RTLidar.util.OAServer;
  */
 public class CommandLine {
 
+    static final Path CWD = Path.of("./static").toAbsolutePath();
+
     public static void main(String args[]) throws IOException {
         Log.setLevel(Log.DEBUG);
-        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 8001), 0);
-        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        java.security.Security.insertProviderAt(new BouncyCastleProvider(), 0);
+
+        var fileHandler = SimpleFileServer.createFileHandler(CWD);
+
+        var LOOPBACK_ADDR = new InetSocketAddress("localhost", 8001);
+        Predicate<Request> IS_POST = r -> r.getRequestMethod().equals("POST");
 
         RTLidar li = new RTLidar();
-        
-        var oas = new OAServer(){
+
+        var oas = new OAServer() {
             @Override
             public String makeAnswer(String offer) {
                 String ret = null;
                 try {
                     ret = li.makeAnswer(offer);
                 } catch (Exception ex) {
-                    Log.error("Can't make answer"+ ex.getMessage());
+                    Log.error("Can't make answer" + ex.getMessage());
                 }
                 return ret;
             }
-            
-            
+
         };
-        
-        server.createContext("/demo", oas);
 
-        server.setExecutor(threadPoolExecutor);
-
+        var handler = HttpHandlers.handleOrElse(IS_POST, oas, fileHandler);
+        var outputFilter = SimpleFileServer.createOutputFilter(System.out, OutputLevel.VERBOSE);
+        var server = HttpServer.create(LOOPBACK_ADDR, 10, "/", handler, outputFilter);
         server.start();
 
         Log.info(" Server started on port 8001");

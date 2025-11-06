@@ -1,7 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package pe.pi.RTLidar.util;
 
 /**
@@ -12,8 +9,11 @@ public class NegotiationData {
 
     static long priority = 1;
     static long foundation =1;
-    
-    static class Candidate {
+    public static class Offer {
+        Candidate [] candidates;
+        DTLSInfo dtls;
+    }
+    public static class Candidate {
 
         String usernameFragment;
         String password;
@@ -33,7 +33,7 @@ public class NegotiationData {
         }
     }
     
-    static class DTLSInfo {
+    public static class DTLSInfo {
         String fingerprintDigestAlgorithm;
         Integer [] fingerprint;
         
