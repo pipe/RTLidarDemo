@@ -53,6 +53,7 @@ import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder;
+import org.bouncycastle.tls.DTLSTransport;
 import org.bouncycastle.tls.DatagramTransport;
 import org.bouncycastle.tls.crypto.TlsCertificate;
 import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
@@ -121,7 +122,7 @@ public abstract class DTLS {
         bcdtls.stop();
     }
 
-    public abstract void onReady();
+    public abstract void onReady(DTLSTransport trans);
 
     public void start(DatagramTransport dt,  String ffp) {
         try {
@@ -133,8 +134,8 @@ public abstract class DTLS {
                 }
 
                 @Override
-                public void onVerified() {
-                    onReady();
+                public void onVerified(DTLSTransport trans) {
+                    onReady(trans);
                 }
             };
 

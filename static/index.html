@@ -53,7 +53,7 @@
              * Initializes the RtcTransport instance.
              */
             function initializeTransport() {
-                controllingTransport = createTransport("myTransport1", true);
+                controllingTransport = createTransport("myTransport1", false);
 
                 controllingTransport.onicecandidate = (event) => {
                     if (event.candidate) {
@@ -76,15 +76,14 @@
              * Sets up the event listeners for the UI elements.
              */
             function answerDeal(remoteData) {
-                console.log("deal with the answer");
+                console.log("deal with the answer :" +JSON.stringify(remoteData));
                 try {
                     let dtls, candidates, transport;
 
                     transport = controllingTransport;
                     dtls = remoteData.dtls;
+                    dtls.sslRole = "client";
                     candidates = remoteData.candidates;
-
-
                     pollWritable(transport, "transport", () => {
                         console.log("we have a writeable transport")
 

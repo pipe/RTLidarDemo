@@ -120,7 +120,7 @@ public abstract class DTLSServer extends
         return ret.toString();
     }
 
-    public abstract void onVerified();
+    public abstract void onVerified(DTLSTransport dtlsServer);
     
     public void run() {
         _dtlsStatusOk = true;
@@ -129,7 +129,7 @@ public abstract class DTLSServer extends
             dtlsServer = _serverProtocol.accept(this, _dt);
             Log.debug("DTLS accept. verified = " + _verified);
             if (_verified) {
-                onVerified();
+                onVerified(dtlsServer);
             } else {
                 Log.error("Not the fingerprint we were looking for (waves hand)");
             }
@@ -140,6 +140,7 @@ public abstract class DTLSServer extends
             }
             Log.debug("Problem with DTLS server setup  " + e.getMessage());
         }
+
         synchronized (nap) {
             while (_dtlsStatusOk == true) {
                 try {

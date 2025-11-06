@@ -4,6 +4,7 @@
  */
 package pe.pi.RTLidar.util;
 
+import com.phono.srtplight.Log;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.ByteArrayOutputStream;

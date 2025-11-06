@@ -27,8 +27,6 @@ import com.sun.net.httpserver.SimpleFileServer.OutputLevel;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Predicate;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import pe.pi.RTLidar.util.OAServer;
@@ -42,7 +40,7 @@ public class CommandLine {
     static final Path CWD = Path.of("./static").toAbsolutePath();
 
     public static void main(String args[]) throws IOException {
-        Log.setLevel(Log.DEBUG);
+        Log.setLevel(Log.INFO);
         java.security.Security.insertProviderAt(new BouncyCastleProvider(), 0);
 
         var fileHandler = SimpleFileServer.createFileHandler(CWD);

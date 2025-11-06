@@ -1,4 +1,3 @@
-
 package pe.pi.RTLidar;
 
 import com.ipseorama.slice.ORTC.RTCDtlsPacket;
@@ -8,9 +7,13 @@ import com.ipseorama.slice.ORTC.RTCIceCandidatePair;
 import com.ipseorama.slice.ORTC.RTCIceTransport;
 import com.ipseorama.slice.ORTC.RTCRtpPacket;
 import com.phono.srtplight.Log;
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.bouncycastle.tls.DTLSTransport;
 import pe.pi.RTLidar.util.AnswerMaker;
 import pe.pi.RTLidar.util.CandidateTransport;
 import pe.pi.RTLidar.util.OfferParser;
@@ -73,8 +76,9 @@ public class RTLidar {
                 }
 
                 @Override
-                public void onReady() {
+                public void onReady(DTLSTransport trans) {
                     Log.info("DTLS complete.");
+                    startSendingTo(trans);
                     Properties[] props = this.extractCryptoProps();
                 }
             };
@@ -85,17 +89,37 @@ public class RTLidar {
 
     }
 
+    public void startSendingTo(DTLSTransport trans){
+        final DTLSTransport sendto = trans;
+        Runnable sender = () -> {
+            while(true){
+                byte []mess = ("Time is "+System.currentTimeMillis()).getBytes();
+                try {
+                    sendto.send(mess,0,mess.length);
+                } catch (IOException ex) {
+                    Log.error("cant send to DTLS"+ex);
+                }
+                try {Thread.sleep(100);}catch(Exception x){}
+            }
+        };
+        new Thread(sender).start();
+    }
+
+    
     String makeAnswer(String offer) throws Exception {
+        String ans = "{error:}";
         gathering = true;
+
         slice.gather();
         OfferParser op = new OfferParser(offer);
-        
+
         ArrayList<RTCIceCandidate> cs = null;
         synchronized (sliceLock) {
             sliceLock.wait(20000);
             cs = slice.getCandidates();
         }
         if (cs != null) {
+            Log.info("Offer: " + offer);
             String ufrag = slice.getLfrag();
             String upass = slice.getLpass();
 
@@ -103,11 +127,14 @@ public class RTLidar {
             String rufrag = op.getUfrag();
             String rupass = op.getUpass();
             String[] rcandy = op.getRcandy();
-            
+
             slice.connect(rufrag, rupass, rcandy);
 
-            return AnswerMaker.makeAnswer(cs, ufrag, upass, vssrc, assrc, fingerprint);
+            ans = AnswerMaker.makeAnswer(cs, ufrag, upass, vssrc, assrc, fingerprint);
+            Log.info("Ans : " + ans);
+        } else {
+            Log.error("cs is null ");
         }
-        return "";
+        return ans;
     }
 }
