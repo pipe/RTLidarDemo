@@ -11,6 +11,8 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -21,11 +23,18 @@ public abstract class UDPListener {
     DatagramSocket ds;
     Thread listener;
     final static int PSIZE = 1206;
-    ExecutorService exec = Executors.newSingleThreadExecutor();
+    ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
 
     public UDPListener(int port) throws SocketException {
         ds = new DatagramSocket(port);
+        long[] sent = new long[1];
+        long then = System.currentTimeMillis();
         ds.setSoTimeout(1000);
+        exec.scheduleWithFixedDelay(() ->{
+            long now = System.currentTimeMillis();
+            long rate = (sent[0] *1000)/(now-then);
+            System.err.println("recv rate is "+rate+" packets/s");
+        }, 10, 10, TimeUnit.SECONDS);
         listener = new Thread(() -> {
             System.err.println("Starting to listen on " + ds.getLocalSocketAddress());
             int n = 0;
@@ -34,6 +43,7 @@ public abstract class UDPListener {
                 var p = new DatagramPacket(data, PSIZE);
                 try {
                     ds.receive(p);
+                    sent[0]++;
                     exec.submit(() -> {
                         hark(p);
                     });

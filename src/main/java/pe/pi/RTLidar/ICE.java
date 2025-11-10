@@ -18,7 +18,6 @@
  */
 package pe.pi.RTLidar;
 
-import com.ipseorama.slice.ORTC.EventHandler;
 import com.ipseorama.slice.ORTC.RTCEventData;
 import com.ipseorama.slice.ORTC.RTCIceCandidate;
 import com.ipseorama.slice.ORTC.RTCIceCandidatePair;
@@ -141,8 +140,8 @@ public abstract class ICE {
     public RTCIceGatherOptions googleStunOptions() {
         RTCIceGatherOptions options = new RTCIceGatherOptions();
         options.setGatherPolicy(RTCIceGatherPolicy.ALL);
-        ArrayList<RTCIceServer> iceServers = new ArrayList< RTCIceServer>();
-        ArrayList<URI> u = new ArrayList<URI>();
+        ArrayList<RTCIceServer> iceServers = new ArrayList< >();
+        ArrayList<URI> u = new ArrayList<>();
         try {
             u.add(new URI("stun:stun4.l.google.com:19302"));
         } catch (URISyntaxException ex) {
@@ -193,8 +192,7 @@ public abstract class ICE {
         ip = params[4];
         port = (char) Integer.parseInt(params[5]);
         int index = 6;
-        RTCIceCandidate ret = null;
-        ret = new RTCIceCandidate(foundation,priority,ip,protocol,port
+        RTCIceCandidate ret = new RTCIceCandidate(foundation,priority,ip,protocol,port
             ,RTCIceCandidateType.HOST,RTCIceTcpCandidateType.ACTIVE);
         try {
             InetAddress nip = InetAddress.getByName(ip);
