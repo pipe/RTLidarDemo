@@ -8,12 +8,12 @@ import com.ipseorama.slice.ORTC.RTCIceTransport;
 import com.ipseorama.slice.ORTC.RTCRtpPacket;
 import com.phono.srtplight.Log;
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.bouncycastle.tls.DTLSTransport;
+import pe.pi.RTLidar.richbeam.UDPListener;
 import pe.pi.RTLidar.util.AnswerMaker;
 import pe.pi.RTLidar.util.CandidateTransport;
 import pe.pi.RTLidar.util.OfferParser;
@@ -31,6 +31,8 @@ public class RTLidar {
     private Long vssrc;
     private Long assrc;
     Boolean gathering = false;
+    static int port = 2368;
+
     final Object sliceLock = new Object();
 
     public RTLidar() {
@@ -91,7 +93,7 @@ public class RTLidar {
 
     public void startSendingTo(DTLSTransport trans) {
         final DTLSTransport sendto = trans;
-        Runnable sender = () -> {
+        /*Runnable sender = () -> {
             while (true) {
                 byte[] mess = ("Time is " + System.currentTimeMillis()).getBytes();
                 try {
@@ -105,7 +107,25 @@ public class RTLidar {
                 }
             }
         };
-        new Thread(sender).start();
+        new Thread(sender).start();*/
+        try {
+            UDPListener l = new UDPListener(port) {
+                @Override
+                public void hark(DatagramPacket p) {
+                    try {
+                        byte[] mess = p.getData();
+                        sendto.send(mess, 0, mess.length);
+                    } catch (Exception ex) {
+                        Log.error("cant send to DTLS" + ex);
+                    }
+                }
+            };
+            l.start();
+
+        } catch (Exception ex) {
+            Log.error("cant connect to Lidar " + ex);
+        }
+
         Runnable recver = () -> {
             byte[] bytes = new byte[1500];
             while (true) {
@@ -121,7 +141,9 @@ public class RTLidar {
                 }
             }
         };
-        new Thread(recver).start();
+
+        new Thread(recver)
+                .start();
 
     }
 
