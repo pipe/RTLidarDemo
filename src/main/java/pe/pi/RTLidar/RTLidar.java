@@ -117,6 +117,7 @@ public class RTLidar {
                         sendto.send(mess, 0, mess.length);
                     } catch (Exception ex) {
                         Log.error("cant send to DTLS" + ex);
+                        this.stop();
                     }
                 }
             };
@@ -128,7 +129,8 @@ public class RTLidar {
 
         Runnable recver = () -> {
             byte[] bytes = new byte[1500];
-            while (true) {
+            boolean ok = true;
+            while (ok) {
                 try {
                     int got = sendto.receive(bytes, 0, bytes.length, 2000);
                     if (got > 0) {
@@ -138,8 +140,11 @@ public class RTLidar {
                     }
                 } catch (IOException ex) {
                     Log.error("cant recv from DTLS" + ex);
+                    ok = false;
                 }
             }
+            dtls.stop();
+            slice.ice.stop();
         };
 
         new Thread(recver)

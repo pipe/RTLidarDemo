@@ -12,6 +12,7 @@ import java.net.SocketTimeoutException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -24,16 +25,24 @@ public abstract class UDPListener {
     Thread listener;
     final static int PSIZE = 1206;
     ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+    private  ScheduledFuture<?> sched = null;
 
     public UDPListener(int port) throws SocketException {
         ds = new DatagramSocket(port);
-        long[] sent = new long[1];
+        long[] sent = new long[2];
         long then = System.currentTimeMillis();
         ds.setSoTimeout(1000);
-        exec.scheduleWithFixedDelay(() ->{
-            long now = System.currentTimeMillis();
-            long rate = (sent[0] *1000)/(now-then);
-            System.err.println("recv rate is "+rate+" packets/s");
+        sched = exec.scheduleWithFixedDelay(() -> {
+            long rate = 0;
+            if (sent[0] > sent[1]) {
+                long now = System.currentTimeMillis();
+                rate = (sent[0] * 1000) / (now - then);
+                sent[1] = sent[0];
+            }
+            System.err.println("send rate is " + rate + " packets/s");
+            if ((listener == null) && (sched != null)){
+                sched.cancel(true);
+            }
         }, 10, 10, TimeUnit.SECONDS);
         listener = new Thread(() -> {
             System.err.println("Starting to listen on " + ds.getLocalSocketAddress());
@@ -56,6 +65,8 @@ public abstract class UDPListener {
                 }
             }
             System.err.println("Stopped listening");
+            ds.close();
+            ds = null;
         }
         );
     }

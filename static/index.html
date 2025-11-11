@@ -3,12 +3,10 @@
         <H1> Hello Lidar</H1>
         <div id="status"></div>
         <div id="error"></div>
-        <input type="button" onclick="doOA();" value="Connect"/>
+        <input id="action" type="button" onclick="nect();" value="Loading..."/>
         <p>This is the Lidar receiver</p>
 
         <canvas id="cloud" width="800" height="800"></canvas>
-        <script src="js/app.js"></script>
-
         <script>
             const CONFIG = {
                 iceServers: [{urls: "stun:stun.l.google.com:19302"}],
@@ -21,16 +19,26 @@
             const textDecoder = new TextDecoder();
 
             // Transport
-            let controllingTransport;
+            let transport;
+            let connected = false;
 
             let candidates = [];
 
+            function nect() {
+                if (!connected) {
+                    if (candidates.length > 0) {
+                        doOA();
+                    }
+                } else {
+                    document.location = document.location;
+                }
+            }
 
             function doOA() {
                 const negotiationData = {
                     "dtls": {
-                        fingerprintDigestAlgorithm: controllingTransport.fingerprintDigestAlgorithm,
-                        fingerprint: Array.from(new Uint8Array(controllingTransport.fingerprint))
+                        fingerprintDigestAlgorithm: transport.fingerprintDigestAlgorithm,
+                        fingerprint: Array.from(new Uint8Array(transport.fingerprint))
                     },
                     candidates: candidates
                 };
@@ -53,25 +61,48 @@
                         .catch(error => console.log('error', error));
             }
 
+            async function getConfig() {
+                console.log("get config");
+                let headers = new Headers();
+                headers.append('Accept', 'application/json');
+                let response = await fetch("pipeconfig.json", {
+                    method: 'GET',
+                    headers: headers,
+                    redirect: 'follow'
+                });
+                return response.json();
+            }
 
+            function eoc() {
+                console.log("end of candidates")
+            }
             /**
              * Initializes the RtcTransport instance.
              */
-            function initializeTransport() {
-                controllingTransport = createTransport("myTransport1", false);
+            async function initializeTransport() {
 
-                controllingTransport.onicecandidate = (event) => {
+                let jconfig = await getConfig();
+                console.log(JSON.stringify(jconfig));
+                CONFIG.iceServers = jconfig.ice.iceServers;
+
+                transport = createTransport("myTransport1", false);
+
+                transport.onicecandidate = (event) => {
                     if (event.candidate) {
-                        candidates.push(event.candidate);
-                        console.log(event.candidate);
-                    } else {
-                        console.log("EoC");
+                        console.log(JSON.stringify(event.candidate));
+
+                        if ((event.candidate.type !== "relay")) {
+                            candidates.push(event.candidate);
+                        }
+                        if (candidates.length > 0) {
+                            document.getElementById("action").value = "Connect";
+                        }
                     }
                 };
 
                 const dtlsParameters = {
-                    fingerprintDigestAlgorithm: controllingTransport.fingerprintDigestAlgorithm,
-                    fingerprint: Array.from(new Uint8Array(controllingTransport.fingerprint)),
+                    fingerprintDigestAlgorithm: transport.fingerprintDigestAlgorithm,
+                    fingerprint: Array.from(new Uint8Array(transport.fingerprint)),
                 };
 
 
@@ -83,18 +114,15 @@
             function answerDeal(remoteData) {
                 console.log("deal with the answer :" + JSON.stringify(remoteData));
                 try {
-                    let dtls, candidates, transport;
+                    let dtls, candidates;
 
-                    transport = controllingTransport;
                     dtls = remoteData.dtls;
                     dtls.sslRole = "client";
                     candidates = remoteData.candidates;
                     pollWritable(transport, "transport", () => {
-                        window.setInterval(() => {
-                            var now = "js says " + Date.now();
-                            transport.sendPackets([{data: textEncoder.encode(now).buffer}]);
-                        }, 150);
-                        console.log("we have a writeable transport")
+                        console.log("we have a writeable transport");
+                        document.getElementById("action").value = "Disconnect";
+                        connected = true;
                     });
                     pollReceivedPackets(transport, (packets) => {
                         packets.forEach((packet) => {
@@ -193,7 +221,7 @@
              * Initializes the application.
              */
 
-            function main() {
+            async function main() {
                 if (!window['RtcTransport']) {
                     updateError("RtcTransport not supported on this browser. Be sure to run a recent Chromium Canary with --enable-blink-features=RTCRtpTransport.");
                     return;

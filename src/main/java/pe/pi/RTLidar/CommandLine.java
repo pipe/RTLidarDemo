@@ -48,13 +48,12 @@ public class CommandLine {
         var LOOPBACK_ADDR = new InetSocketAddress("localhost", 8001);
         Predicate<Request> IS_POST = r -> r.getRequestMethod().equals("POST");
 
-        RTLidar li = new RTLidar();
-
         var oas = new OAServer() {
             @Override
             public String makeAnswer(String offer) {
                 String ret = null;
                 try {
+                    RTLidar li = new RTLidar();
                     ret = li.makeAnswer(offer);
                 } catch (Exception ex) {
                     Log.error("Can't make answer" + ex.getMessage());
