@@ -66,4 +66,8 @@ public class OfferParser {
             Log.error("Can't read test because " + x.getMessage());
         }
     }
+
+    public String getFingerprint() {
+        return off.dtls.getFingerprint();
+    }
 }

@@ -16,7 +16,7 @@ import java.util.Arrays;
  */
 public class AnswerMaker {
 
-    public static String makeAnswer(ArrayList<RTCIceCandidate> cs, String ufrag, String upass, Long vssrc, Long assrc, String fingerprint,String sessionId) {
+    public static String makeAnswer(ArrayList<RTCIceCandidate> cs, String ufrag, String upass,  String fingerprint,String sessionId) {
         GsonBuilder builder = new GsonBuilder();
         var gson = builder.create();
         var ans = new NegotiationData.Answer();

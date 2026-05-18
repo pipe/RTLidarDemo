@@ -5,15 +5,11 @@ import com.ipseorama.slice.ORTC.RTCEventData;
 import com.ipseorama.slice.ORTC.RTCIceCandidate;
 import com.ipseorama.slice.ORTC.RTCIceCandidatePair;
 import com.ipseorama.slice.ORTC.RTCIceTransport;
-import com.ipseorama.slice.ORTC.RTCRtpPacket;
 import com.phono.srtplight.Log;
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Properties;
 import org.bouncycastle.tls.DTLSTransport;
-import pe.pi.RTLidar.richbeam.UDPListener;
 import pe.pi.RTLidar.util.AnswerMaker;
 import pe.pi.RTLidar.util.CandidateTransport;
 import pe.pi.RTLidar.util.OfferParser;
@@ -22,25 +18,24 @@ import pe.pi.RTLidar.util.OfferParser;
  *
  * @author thp
  */
-public class RTLidar {
+public abstract class RTLidar {
 
     ICE slice;
     DTLS dtls;
     String ffp;
     SecureRandom random = new SecureRandom();
-    private Long vssrc;
-    private Long assrc;
+    String session;
     Boolean gathering = false;
     static int port = 2368;
-
+    OfferParser op;
     final Object sliceLock = new Object();
 
-    public RTLidar() {
-
+    public RTLidar(String offer) {
+        Log.info("Offer: " + offer);
+        op = new OfferParser(offer);
+        ffp = op.getFingerprint();
+        session = op.getSessionId();
         try {
-            vssrc = (long) Math.abs(random.nextInt()); // remove this if you want to run audio only
-            assrc = (long) Math.abs(random.nextInt()); // remove this if you want to run video only
-
             slice = new ICE(random) {
                 @Override
                 void onGathered() {
@@ -52,15 +47,18 @@ public class RTLidar {
                 }
 
                 @Override
+                void onDisconnected(RTCIceTransport trans, RTCIceCandidatePair scp) {
+                    Log.info("ICE was connected to server at" + scp.getFarIp());
+                    dtls.stop();
+                    stopped();
+                }
+
+                @Override
                 void onConnected(RTCIceTransport trans, RTCIceCandidatePair scp) {
                     Log.info("ICE has connected to server at" + scp.getFarIp());
                     trans.onRTP = (rtppkt) -> {
-                        if (rtppkt instanceof RTCRtpPacket) {
-                            //rtp.inbound((RTCRtpPacket) rtppkt);
-                        }
                     };
                     final CandidateTransport cdt = new CandidateTransport(getTransport());
-                    //rtp.setCandidateTransport(cdt);
                     trans.onDtls = (RTCEventData pkt) -> {
                         if (pkt instanceof RTCDtlsPacket) {
                             byte data[] = ((RTCDtlsPacket) pkt).data;
@@ -81,52 +79,21 @@ public class RTLidar {
                 public void onReady(DTLSTransport trans) {
                     Log.info("DTLS complete.");
                     startSendingTo(trans);
-                    Properties[] props = this.extractCryptoProps();
                 }
             };
             dtls.mkCertNKey();
+
         } catch (Exception ex) {
             Log.error("can't start " + ex);
         }
 
     }
+    DTLSTransport sendto;
 
+    abstract void stopped();
+    
     public void startSendingTo(DTLSTransport trans) {
-        final DTLSTransport sendto = trans;
-        /*Runnable sender = () -> {
-            while (true) {
-                byte[] mess = ("Time is " + System.currentTimeMillis()).getBytes();
-                try {
-                    sendto.send(mess, 0, mess.length);
-                } catch (IOException ex) {
-                    Log.error("cant send to DTLS" + ex);
-                }
-                try {
-                    Thread.sleep(100);
-                } catch (Exception x) {
-                }
-            }
-        };
-        new Thread(sender).start();*/
-        try {
-            UDPListener l = new UDPListener(port) {
-                @Override
-                public void hark(DatagramPacket p) {
-                    try {
-                        byte[] mess = p.getData();
-                        sendto.send(mess, 0, mess.length);
-                    } catch (Exception ex) {
-                        Log.error("cant send to DTLS" + ex);
-                        this.stop();
-                    }
-                }
-            };
-            l.start();
-
-        } catch (Exception ex) {
-            Log.error("cant connect to Lidar " + ex);
-        }
-
+        sendto = trans;
         Runnable recver = () -> {
             byte[] bytes = new byte[1500];
             boolean ok = true;
@@ -139,12 +106,15 @@ public class RTLidar {
                         Log.info("got message: " + new String(go));
                     }
                 } catch (IOException ex) {
-                    Log.error("cant recv from DTLS" + ex);
+                    Log.info("cant recv from DTLS" + ex);
                     ok = false;
                 }
             }
             dtls.stop();
-            slice.ice.stop();
+            sendto = null;
+            if (slice.ice != null){
+                slice.ice.stop();
+            }
         };
 
         new Thread(recver)
@@ -152,12 +122,11 @@ public class RTLidar {
 
     }
 
-    String makeAnswer(String offer) throws Exception {
+    String makeAnswer() throws Exception {
         String ans = "{error:}";
         gathering = true;
 
         slice.gather();
-        OfferParser op = new OfferParser(offer);
 
         ArrayList<RTCIceCandidate> cs = null;
         synchronized (sliceLock) {
@@ -165,7 +134,6 @@ public class RTLidar {
             cs = slice.getCandidates();
         }
         if (cs != null) {
-            Log.info("Offer: " + offer);
             String ufrag = slice.getLfrag();
             String upass = slice.getLpass();
 
@@ -177,11 +145,21 @@ public class RTLidar {
 
             slice.connect(rufrag, rupass, rcandy);
 
-            ans = AnswerMaker.makeAnswer(cs, ufrag, upass, vssrc, assrc, fingerprint,sessionId);
+            ans = AnswerMaker.makeAnswer(cs, ufrag, upass, fingerprint, sessionId);
             Log.info("Ans : " + ans);
         } else {
             Log.error("cs is null ");
         }
         return ans;
+    }
+
+    void sendTo(byte[] mess, int i, int length) throws IOException {
+        if (sendto != null){
+            sendto.send(mess, i, length);
+        }
+    }
+
+    String getSessionId() {
+        return session;
     }
 }

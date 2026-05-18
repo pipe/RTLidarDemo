@@ -29,7 +29,6 @@ public abstract class UDPListener {
     private  ScheduledFuture<?> sched = null;
 
     public UDPListener(int port) throws SocketException {
-        //InetAddress addr = InetAddress.ofLiteral("192.")
         ds = new DatagramSocket(port);
         long[] sent = new long[2];
         long then = System.currentTimeMillis();
@@ -41,7 +40,7 @@ public abstract class UDPListener {
                 rate = (sent[0] * 1000) / (now - then);
                 sent[1] = sent[0];
             }
-            System.err.println("send rate is " + rate + " packets/s");
+            System.err.println("lidar rate is " + rate + " packets/s");
             if ((listener == null) && (sched != null)){
                 sched.cancel(true);
             }

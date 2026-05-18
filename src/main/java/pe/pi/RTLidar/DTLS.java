@@ -18,8 +18,7 @@
  */
 package pe.pi.RTLidar;
 
-import biz.source_code.Base64Coder;
-import com.ipseorama.slice.ORTC.RTCDtlsParameters;
+
 import com.ipseorama.slice.ORTC.RTCDtlsTransport;
 import com.phono.srtplight.Log;
 import java.io.ByteArrayInputStream;
@@ -66,7 +65,6 @@ import pe.pi.RTLidar.util.DTLSServer;
 public abstract class DTLS {
 
     DTLSServer bcdtls;
-    Properties[] cprops;
     BcTlsCrypto crypto;
     AsymmetricKeyParameter key;
     TlsCertificate cert;
@@ -76,47 +74,8 @@ public abstract class DTLS {
         crypto = new BcTlsCrypto(random);
     }
 
-    Properties[] extractCryptoProps() {
-        return cprops;
-    }
 
-    Properties[] extractCryptoProps(DTLSServer end) {
-        Log.debug("speculatively extracting the crypto props");
-        Properties[] p = new Properties[2];
-        byte empty[] = new byte[0];
-        // assume SRTP_AES128_CM_HMAC_SHA1_80
-        int keyLength = 16;
-        int saltLength = 14;
-        int ts = 2 * (keyLength + saltLength);
-        byte[] keys = end.getContext().exportKeyingMaterial("EXTRACTOR-dtls_srtp", null, ts);
-        byte[] clientKeyParams = new byte[30];
-        byte[] serverKeyParams = new byte[30];
-        int offs = 0;
-        System.arraycopy(keys, offs, clientKeyParams, 0, keyLength);
-        offs += keyLength;
-        System.arraycopy(keys, offs, serverKeyParams, 0, keyLength);
-        offs += keyLength;
-        System.arraycopy(keys, offs, clientKeyParams, keyLength, saltLength);
-        offs += saltLength;
-        System.arraycopy(keys, offs, serverKeyParams, keyLength, saltLength);
-        offs += saltLength;
 
-        String client = new String(Base64Coder.encode(clientKeyParams));
-        String server = new String(Base64Coder.encode(serverKeyParams));
-
-        p[0] = new Properties();
-        p[0].put("required", "1");
-        p[0].put("crypto-suite", "AES_CM_128_HMAC_SHA1_80");
-        p[0].put("key-params", "inline:" + client);
-        p[1] = new Properties();
-        p[1].put("required", "1");
-        p[1].put("crypto-suite", "AES_CM_128_HMAC_SHA1_80");
-        p[1].put("key-params", "inline:" + server);
-
-        /* required='1' crypto-suite='AES_CM_128_HMAC_SHA1_80' key-params='inline:WVNfX19zZW1jdGwgKCkgewkyMjA7fQp9CnVubGVz' session-params='KDR=1 UNENCRYPTED_SRTCP' tag='1'
-         */
-        return p;
-    }
 
     public void stop() {
         bcdtls.stop();
@@ -128,11 +87,6 @@ public abstract class DTLS {
         try {
             Log.debug("starting DTLS Server");
             bcdtls = new DTLSServer(key,cert,crypto,dt,ffp) {
-                @Override
-                public void notifyHandshakeComplete() {
-                    cprops = extractCryptoProps(this);
-                }
-
                 @Override
                 public void onVerified(DTLSTransport trans) {
                     onReady(trans);

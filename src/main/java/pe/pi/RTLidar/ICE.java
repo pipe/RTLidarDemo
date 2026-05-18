@@ -87,11 +87,20 @@ public abstract class ICE {
             if (transport.getState() == RTCIceTransportState.COMPLETED) {
                 RTCIceCandidatePair sel = transport.getSelectedCandidatePair();
                 if (sel != null) {
-                    onConnected(transport,sel);
+                    onConnected(transport, sel);
                 } else {
                     Log.error("Connected ICE but selected pair is null ?!?! ");
                 }
             }
+            if (transport.getState() == RTCIceTransportState.DISCONNECTED) {
+                RTCIceCandidatePair sel = transport.getSelectedCandidatePair();
+                if (sel != null) {
+                    onDisconnected(transport, sel);
+                } else {
+                    Log.error("Disonnected ICE but selected pair is null ?!?! ");
+                }
+            }
+
         };
 
         transport.oncandidatepairchange = (RTCEventData d) -> {
@@ -140,10 +149,10 @@ public abstract class ICE {
     public RTCIceGatherOptions googleStunOptions() {
         RTCIceGatherOptions options = new RTCIceGatherOptions();
         options.setGatherPolicy(RTCIceGatherPolicy.ALL);
-        ArrayList<RTCIceServer> iceServers = new ArrayList< >();
+        ArrayList<RTCIceServer> iceServers = new ArrayList<>();
         ArrayList<URI> u = new ArrayList<>();
         try {
-            u.add(new URI("stun:stun4.l.google.com:19302"));
+            u.add(new URI("stun:stun.cloudflare.com:3478"));
         } catch (URISyntaxException ex) {
             throw new IllegalArgumentException(ex.getMessage());
         }
@@ -171,7 +180,9 @@ public abstract class ICE {
 
     abstract void onGathered();
 
-    abstract void onConnected(RTCIceTransport transport,RTCIceCandidatePair scp);
+    abstract void onConnected(RTCIceTransport transport, RTCIceCandidatePair scp);
+    abstract void onDisconnected(RTCIceTransport transport, RTCIceCandidatePair scp);
+
 
     private static RTCIceCandidate mkCandidate(String r) {
         String foundation;
@@ -192,8 +203,8 @@ public abstract class ICE {
         ip = params[4];
         port = (char) Integer.parseInt(params[5]);
         int index = 6;
-        RTCIceCandidate ret = new RTCIceCandidate(foundation,priority,ip,protocol,port
-            ,RTCIceCandidateType.HOST,RTCIceTcpCandidateType.ACTIVE);
+        RTCIceCandidate ret = new RTCIceCandidate(foundation, priority, ip, protocol, port,
+                 RTCIceCandidateType.HOST, RTCIceTcpCandidateType.ACTIVE);
         try {
             InetAddress nip = InetAddress.getByName(ip);
             if (nip instanceof Inet6Address) {
@@ -226,7 +237,7 @@ public abstract class ICE {
                     ret.setRelatedPort(port);
                     break;
                 default:
-                    Log.warn("extra candidate info ignored "+params[index]);
+                    Log.warn("extra candidate info ignored " + params[index]);
             }
             index += 2;
         }
