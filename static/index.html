@@ -26,21 +26,24 @@
 
             function nect() {
                 if (!connected) {
+                    let myuuid = crypto.randomUUID();
+
                     if (candidates.length > 0) {
-                        doOA();
+                        doOA(myuuid);
                     }
                 } else {
                     document.location = document.location;
                 }
             }
 
-            function doOA() {
+            function doOA(sessionId) {
                 const negotiationData = {
                     "dtls": {
                         fingerprintDigestAlgorithm: transport.fingerprintDigestAlgorithm,
                         fingerprint: Array.from(new Uint8Array(transport.fingerprint))
                     },
-                    candidates: candidates
+                    candidates: candidates,
+                    "sessionId": sessionId
                 };
                 let offer = JSON.stringify(negotiationData);
                 console.log("offer is " + offer);
@@ -56,7 +59,7 @@
                 }).then(response => response.json())
                         .then((so) => {
                             console.log(JSON.stringify(so));
-                            answerDeal(so);
+                            answerDeal(so,sessionId);
                         })
                         .catch(error => console.log('error', error));
             }
@@ -111,34 +114,41 @@
             /**
              * Sets up the event listeners for the UI elements.
              */
-            function answerDeal(remoteData) {
+            function answerDeal(remoteData,sessionId) {
                 console.log("deal with the answer :" + JSON.stringify(remoteData));
+                if (sessionId === remoteData.sessionId){
                 try {
                     let dtls, candidates;
 
                     dtls = remoteData.dtls;
-                    dtls.sslRole = "client";
-                    candidates = remoteData.candidates;
-                    pollWritable(transport, "transport", () => {
-                        console.log("we have a writeable transport");
-                        document.getElementById("action").value = "Disconnect";
-                        connected = true;
-                    });
-                    pollReceivedPackets(transport, (packets) => {
-                        packets.forEach((packet) => {
-                            parseMessage(packet.data);
-                        });
-                    });
+                            dtls.sslRole = "client";
+                            candidates = remoteData.candidates;
+                            pollWritable(transport, "transport", () => {
+                                console.log("we have a writeable transport");
+                                document.getElementById("action").value = "Disconnect";
+                                connected = true;
+                            });
+                            pollReceivedPackets(transport, (packets) => {
+                                packets.forEach((packet) => {
+                                    const buffer = new ArrayBuffer(packet.payloadByteLength);
+                                    packet.copyPayloadTo(buffer);
+                                    parseMessage(buffer);
+                                    //parseMessage(packet.data);
+                                });
+                            });
 
-                    dtls.fingerprint = new Uint8Array(dtls.fingerprint).buffer;
-                    transport.setRemoteDtlsParameters(dtls);
-                    candidates.forEach(candidate => transport.addRemoteCandidate(candidate));
-                    updateStatus(`Added remote parameters`);
-                } catch (error) {
-                    updateStatus("Error parsing candidate. Please check the format.");
-                    console.error("Error parsing candidate:", error);
+                            dtls.fingerprint = new Uint8Array(dtls.fingerprint).buffer;
+                            transport.setRemoteDtlsParameters(dtls);
+                            candidates.forEach(candidate => transport.addRemoteCandidate(candidate));
+                            updateStatus(`Added remote parameters`);
+                        } catch (error) {
+                            updateStatus("Error parsing candidate. Please check the format.");
+                            console.error("Error parsing candidate:", error);
+                        }
+                    } else {
+                        console.log("wrong session id" + sessionId + "!=" + remoteData.sessionId);
+                    }
                 }
-            }
 // DOM Elements
             const statusEl = document.getElementById("status");
             const errorEl = document.getElementById("error");

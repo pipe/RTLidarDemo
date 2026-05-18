@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.net.InetAddress;
 
 /**
  *
@@ -28,6 +29,7 @@ public abstract class UDPListener {
     private  ScheduledFuture<?> sched = null;
 
     public UDPListener(int port) throws SocketException {
+        //InetAddress addr = InetAddress.ofLiteral("192.")
         ds = new DatagramSocket(port);
         long[] sent = new long[2];
         long then = System.currentTimeMillis();

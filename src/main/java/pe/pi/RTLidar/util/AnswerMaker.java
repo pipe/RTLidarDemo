@@ -16,7 +16,7 @@ import java.util.Arrays;
  */
 public class AnswerMaker {
 
-    public static String makeAnswer(ArrayList<RTCIceCandidate> cs, String ufrag, String upass, Long vssrc, Long assrc, String fingerprint) {
+    public static String makeAnswer(ArrayList<RTCIceCandidate> cs, String ufrag, String upass, Long vssrc, Long assrc, String fingerprint,String sessionId) {
         GsonBuilder builder = new GsonBuilder();
         var gson = builder.create();
         var ans = new NegotiationData.Answer();
@@ -32,6 +32,7 @@ public class AnswerMaker {
         ans.dtls = new NegotiationData.DTLSInfo();
         ans.dtls.fingerprint =Arrays.stream(fingerprint.split(":")).map((hexS)-> Integer.parseInt(hexS, 16)).toArray(Integer[]::new);
         ans.dtls.fingerprintDigestAlgorithm= "sha-256";
+        ans.sessionId = sessionId;
         var ret = gson.toJson(ans);
         return ret;
     }

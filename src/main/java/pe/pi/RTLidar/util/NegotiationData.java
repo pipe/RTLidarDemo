@@ -13,12 +13,15 @@ public class NegotiationData {
 
         Candidate[] candidates;
         DTLSInfo dtls;
+        String sessionId;
     }
 
     public static class Answer {
 
         Candidate[] candidates;
         DTLSInfo dtls;
+        String sessionId;
+
     }
 
     public static class Candidate {

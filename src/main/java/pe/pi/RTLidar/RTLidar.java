@@ -173,10 +173,11 @@ public class RTLidar {
             String rufrag = op.getUfrag();
             String rupass = op.getUpass();
             String[] rcandy = op.getRcandy();
+            String sessionId = op.getSessionId();
 
             slice.connect(rufrag, rupass, rcandy);
 
-            ans = AnswerMaker.makeAnswer(cs, ufrag, upass, vssrc, assrc, fingerprint);
+            ans = AnswerMaker.makeAnswer(cs, ufrag, upass, vssrc, assrc, fingerprint,sessionId);
             Log.info("Ans : " + ans);
         } else {
             Log.error("cs is null ");

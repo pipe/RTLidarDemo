@@ -43,6 +43,9 @@ public class OfferParser {
     public String getUpass() {
         return off.candidates[0].password;
     }
+    public String getSessionId(){
+        return off.sessionId;
+    }
     
     public static void main(String argv[]) {
         Log.setLevel(Log.DEBUG);
