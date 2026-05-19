@@ -18,7 +18,6 @@
  */
 package pe.pi.RTLidar;
 
-
 import com.ipseorama.slice.ORTC.RTCDtlsTransport;
 import com.phono.srtplight.Log;
 import java.io.ByteArrayInputStream;
@@ -65,17 +64,13 @@ import pe.pi.RTLidar.util.DTLSServer;
 public abstract class DTLS {
 
     DTLSServer bcdtls;
-    BcTlsCrypto crypto;
-    AsymmetricKeyParameter key;
-    TlsCertificate cert;
+    static BcTlsCrypto crypto = new BcTlsCrypto(CommandLine.random);
+    private static AsymmetricKeyParameter key;
+    private static TlsCertificate cert;
     RTCDtlsTransport dtlsT;
 
-    public DTLS(SecureRandom random) {
-        crypto = new BcTlsCrypto(random);
+    public DTLS() {
     }
-
-
-
 
     public void stop() {
         bcdtls.stop();
@@ -83,10 +78,10 @@ public abstract class DTLS {
 
     public abstract void onReady(DTLSTransport trans);
 
-    public void start(DatagramTransport dt,  String ffp) {
+    public void start(DatagramTransport dt, String ffp) {
         try {
             Log.debug("starting DTLS Server");
-            bcdtls = new DTLSServer(key,cert,crypto,dt,ffp) {
+            bcdtls = new DTLSServer(key, cert, crypto, dt, ffp) {
                 @Override
                 public void onVerified(DTLSTransport trans) {
                     onReady(trans);
@@ -123,36 +118,46 @@ public abstract class DTLS {
         return b.toString();
     }
 
-    protected int getLifespan() {
+    static protected int getLifespan() {
         return 1;//day
     }
 
-    abstract String makeCn();
-
-    synchronized void mkCertNKey() throws InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException, CertificateEncodingException, IOException, KeyStoreException, CertificateException {
-
-        int strength = 2048;
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(strength);
-
-        KeyPair keyPair = generator.generateKeyPair();
-        PrivateKey priv = keyPair.getPrivate();
-        key = PrivateKeyFactory.createKey(priv.getEncoded());
-        String dn = "CN=" + makeCn();
-        X509Certificate tcert = generateCertificate(dn, keyPair,
-                getLifespan(), "SHA256withRSA");
-        java.security.cert.Certificate[] chain = new java.security.cert.Certificate[1];
-
-        ByteArrayInputStream bis = new ByteArrayInputStream(tcert.getEncoded());
-
-        CertificateFactory cf = CertificateFactory.getInstance("X.509");
-        while (bis.available() > 0) {
-            chain[0] = cf.generateCertificate(bis);
-        }
-        cert = crypto.createCertificate(chain[0].getEncoded());
+    static protected String makeCn() {
+        String ret = "RTCTransport-lidar";
+        return ret;
     }
 
-    public X509Certificate generateCertificate(String dn, KeyPair pair,
+    static synchronized void mkCertNKey() throws InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException, CertificateEncodingException, IOException, KeyStoreException, CertificateException {
+        if ((key == null) || (cert == null)) {
+            Log.info("Making key and cert");
+
+            int strength = 4096;
+            KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+            generator.initialize(strength);
+
+            KeyPair keyPair = generator.generateKeyPair();
+            PrivateKey priv = keyPair.getPrivate();
+            key = PrivateKeyFactory.createKey(priv.getEncoded());
+            String dn = "CN=" + makeCn();
+            X509Certificate tcert = generateCertificate(dn, keyPair,
+                    getLifespan(), "SHA256withRSA");
+            java.security.cert.Certificate[] chain = new java.security.cert.Certificate[1];
+
+            ByteArrayInputStream bis = new ByteArrayInputStream(tcert.getEncoded());
+
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            while (bis.available() > 0) {
+                chain[0] = cf.generateCertificate(bis);
+            }
+            cert = crypto.createCertificate(chain[0].getEncoded());
+            Log.info("Made key and cert");
+        } else {
+            Log.info("reusing key and cert");
+
+        }
+    }
+
+    static public X509Certificate generateCertificate(String dn, KeyPair pair,
             int days, String algorithm)
             throws CertificateException {
 
@@ -180,6 +185,7 @@ public abstract class DTLS {
     String getPrint(boolean b) throws IOException {
         return getPrint(cert, b);
     }
+
     public static boolean validate(TlsCertificate fpc) throws IOException, CertificateException {
         boolean ret = false;
 
@@ -189,10 +195,10 @@ public abstract class DTLS {
         while (bis.available() > 0) {
             java.security.cert.X509Certificate fiveohnine = (java.security.cert.X509Certificate) cf.generateCertificate(bis);
             long now = System.currentTimeMillis();
-            Log.debug("cert "+fiveohnine.getSubjectDN()
-                    +"\n\t not before "+fiveohnine.getNotBefore().getTime()
-                    +"\n\t not after  "+fiveohnine.getNotAfter().getTime()
-                    +"\n\t now it is  "+now);
+            Log.debug("cert " + fiveohnine.getSubjectDN()
+                    + "\n\t not before " + fiveohnine.getNotBefore().getTime()
+                    + "\n\t not after  " + fiveohnine.getNotAfter().getTime()
+                    + "\n\t now it is  " + now);
             fiveohnine.checkValidity();
             ret = true;
         }

@@ -28,6 +28,13 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
+import java.security.InvalidKeyException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
+import java.security.SignatureException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,6 +52,7 @@ import pe.pi.RTLidar.util.OAServer;
 public class CommandLine {
 
     static final Path CWD = Path.of("./static").toAbsolutePath();
+    static final SecureRandom random = new SecureRandom();
 
     public static void main(String args[]) throws IOException {
         Log.setLevel(Log.INFO);
@@ -56,7 +64,12 @@ public class CommandLine {
 
         var LOOPBACK_ADDR = new InetSocketAddress("localhost", 8001);
         Predicate<Request> IS_POST = r -> r.getRequestMethod().equals("POST");
-
+        try {
+            DTLS.mkCertNKey();
+        } catch (IOException | InvalidKeyException | KeyStoreException | NoSuchAlgorithmException | NoSuchProviderException | SignatureException | CertificateException x){
+            Log.error("Can't make cert" + x.getMessage());
+            System.exit(-1);
+        }
         var oas = new OAServer() {
             @Override
             public String makeAnswer(String offer) {

@@ -23,7 +23,6 @@ public abstract class RTLidar {
     ICE slice;
     DTLS dtls;
     String ffp;
-    SecureRandom random = new SecureRandom();
     String session;
     Boolean gathering = false;
     static int port = 2368;
@@ -36,7 +35,7 @@ public abstract class RTLidar {
         ffp = op.getFingerprint();
         session = op.getSessionId();
         try {
-            slice = new ICE(random) {
+            slice = new ICE(CommandLine.random) {
                 @Override
                 void onGathered() {
                     Log.info("Got local ip address(es)");
@@ -68,20 +67,13 @@ public abstract class RTLidar {
                     dtls.start(cdt, ffp);
                 }
             };
-            dtls = new DTLS(random) {
-                @Override
-                protected String makeCn() {
-                    String ret = "RTCTransport-lidar";
-                    return ret;
-                }
-
+            dtls = new DTLS() {
                 @Override
                 public void onReady(DTLSTransport trans) {
                     Log.info("DTLS complete.");
                     startSendingTo(trans);
                 }
             };
-            dtls.mkCertNKey();
 
         } catch (Exception ex) {
             Log.error("can't start " + ex);
